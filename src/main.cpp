@@ -3,6 +3,11 @@
 #include <Arduino.h>
 
 // Constants
+const int motorForwardSpeed = 255;
+const int motorReverseSpeed = 255;
+
+
+
 const int buttonPin = 0;
 const int driverPwmPin = 0;
 const int driverDirPin = 0;
@@ -15,6 +20,8 @@ const int currentGain = 20;
 // x = 1 - X
 
 int buttonState;
+int motorDirection;
+int currentPWM = 0;
 
 unsigned long currentTime = 0;
 unsigned long previousButtonTime = 0;
@@ -28,4 +35,16 @@ void setup()
 void loop()
 {
   currentTime = millis();
+  if (currentPWM < motorForwardSpeed)
+  {
+    softStart();
+  }
+  
+}
+
+void softStart()
+{
+  currentPWM += 10;
+  analogWrite(driverPwmPin, currentPWM);
+  delay(10)
 }
