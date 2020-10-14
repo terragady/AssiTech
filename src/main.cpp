@@ -1,4 +1,27 @@
 
+///////////////////////////////////////////////////////////////////////////////////////////
+//                        _   ___ ___ ___ _____ ___ ___ _  _                             //
+//                       /_\ / __/ __|_ _|_   _| __/ __| || |                            //
+//                      / _ \\__ \__ \| |  | | | _| (__| __ |                            //
+//                     /_/ \_\___/___/___| |_| |___\___|_||_|                            //
+//                                                                                       //
+/////////////////////////////////////// USER CONFIG ///////////////////////////////////////
+// set startType 0 for hardStart and 1 for softStart of motor every turn                 //
+const int motorStartType = 1; //
+// set motor speed from 0 to 255                                                         //
+const int motorSpeed = 255; //
+// set motor time it will be running forward in ms                                       //
+const unsigned int motorForwardTime = 5000; //
+// set motor time it will be running reverse in ms                                       //
+const unsigned int motorReverseTime = 5000; //
+// set number of cycles (back and forth)                                                 //
+const unsigned int repsNumber = 50; //
+// set 1 if you want the cycles to be reseted after button press during working phase    //
+const int repReset = 0; //
+// set 0 if first movement should be forward or 1 for reverse                            //
+int motorDirection = 1; //
+/////////////////////////////////////////// END ///////////////////////////////////////////
+
 // LIBs
 
 #include <Arduino.h>
@@ -6,24 +29,6 @@
 #include <LiquidCrystal_I2C.h>
 
 // Constants
-
-/////////////////////////// USER CONFIG ///////////////////////////
-// set startType 0 for hardStart and 1 for softStart of motor every turn
-const int motorStartType = 1;
-// set motor speed from 0 to 255
-const int motorSpeed = 255;
-// set motor time it will be running forward in ms
-const unsigned int motorForwardTime = 500;
-// set motor time it will be running reverse in ms
-const unsigned int motorReverseTime = 500;
-// set number of cycles (back and forth)
-const unsigned int repsNumber = 5;
-// set 1 if you want the cycles to be reseted after button press during working phase
-const int repReset = 0;
-// set 0 if first movement should be forward or 1 for reverse
-int motorDirection = 0;
-
-/////////////////////////////// END ///////////////////////////////
 
 const int currentGain = 20;
 const unsigned int buttonDelay = 500;
@@ -64,7 +69,6 @@ void softStart(int speed)
     delay(2);
   }
   running = 1;
-  Serial.println("SOFT");
   analogWrite(driverPwmPin, speed);
 }
 
@@ -72,7 +76,6 @@ void hardStart(int speed)
 {
   analogWrite(driverPwmPin, speed);
   running = 1;
-  Serial.println("SOFT");
 }
 
 void enableDriver()
@@ -90,8 +93,7 @@ void calibrateOffset()
 
 unsigned int getCurrentReading()
 {
-  int rawReading = analogRead(driverCSPin);
-  int reading = rawReading - currentOffset;
+  int reading = analogRead(driverCSPin) - currentOffset;
   if (reading > 0)
   {
     return reading * 5000000 / 1024 / currentGain;
@@ -219,8 +221,13 @@ void loop()
   if (currentTime - previousCurrentReadingTime >= 1000)
   {
     previousCurrentReadingTime = currentTime;
-
-    // Serial.println(getCurrentReading());
+    if (running == 1)
+    {
+      lcd.setCursor(0, 3);
+      lcd.print("Current: ");
+      lcd.print(getCurrentReading() / 1000.0, 2);
+      lcd.print("A");
+    }
   }
   if (buttonState == 1 && currentRep / 2 <= repsNumber)
   {
@@ -234,23 +241,21 @@ void loop()
     }
     else
     {
-      digitalWrite(driverDirPin, motorDirection);
       if (running == 0)
       {
-
+        digitalWrite(driverDirPin, motorDirection);
         motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
         motorStartType ? softStart(motorSpeed) : hardStart(motorSpeed);
         runningMotorTime = currentTime;
-
-        Serial.println("PLUS REP");
-        lcd.clear();
         enableDriver();
+        lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print("Current cycle:");
+        lcd.print("Current cycle: ");
         lcd.print(currentRep / 2);
         lcd.setCursor(0, 1);
-        lcd.print("Approx. time left:");
-        lcd.print((motorForwardTime + motorReverseTime) / 1000 * currentRep / 2 / 60 + 1);
+        lcd.print("Time left: ");
+        lcd.print((motorForwardTime + motorReverseTime) / 1000 * (repsNumber - currentRep / 2) / 60 + 1);
+        lcd.print("min");
       }
     }
   }
