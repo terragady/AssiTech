@@ -15,7 +15,7 @@ const unsigned int motorForwardTime = 5000; //
 // set motor time it will be running reverse in ms                                       //
 const unsigned int motorReverseTime = 5000; //
 // set number of cycles (back and forth)                                                 //
-const unsigned int repsNumber = 50; //
+const unsigned int repsNumber = 1; //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
 const int repReset = 0; //
 // set 0 if first movement should be forward or 1 for reverse                            //
@@ -30,7 +30,7 @@ int motorDirection = 1; //
 
 // Constants
 
-const int currentGain = 20;
+const int currentGain = 40;
 const unsigned int buttonDelay = 500;
 
 const int buttonPin = 12;
@@ -218,7 +218,7 @@ void loop()
 {
   readButton();
   currentTime = millis();
-  if (currentTime - previousCurrentReadingTime >= 1000)
+  if (currentTime - previousCurrentReadingTime >= 500)
   {
     previousCurrentReadingTime = currentTime;
     if (running == 1)
@@ -229,11 +229,13 @@ void loop()
       lcd.print("A");
     }
   }
+
   if (buttonState == 1 && currentRep / 2 <= repsNumber)
   {
     // Serial.println(currentTime - runningMotorTime);
     if (currentTime - runningMotorTime >= (motorDirection ? motorForwardTime : motorReverseTime))
     {
+      analogWrite(driverPwmPin, 0);
       runningMotorTime = currentTime;
       motorDirection = !motorDirection;
       running = 0;
@@ -247,7 +249,6 @@ void loop()
         motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
         motorStartType ? softStart(motorSpeed) : hardStart(motorSpeed);
         runningMotorTime = currentTime;
-        enableDriver();
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("Current cycle: ");
@@ -264,5 +265,19 @@ void loop()
     analogWrite(driverPwmPin, LOW);
     running = 0;
     repReset ? currentRep = 0 : currentRep = currentRep;
+    if (currentRep / 2 > repsNumber)
+    {
+      lcd.clear();
+      lcd.home();
+      lcd.print("      FINISHED      ");
+      lcd.setCursor(0, 2);
+      lcd.print("    press button    ");
+      lcd.setCursor(0, 3);
+      lcd.print("    to run again    ");
+      buttonState = 0;
+      currentRep = 1;
+      runningMotorTime = 8.64e+7;
+      motorDirection = !motorDirection;
+    }
   }
 }
