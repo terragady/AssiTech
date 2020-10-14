@@ -3,12 +3,14 @@
 #include <Arduino.h>
 
 // Constants
-const int motorForwardSpeed = 155;
-const int motorReverseSpeed = 155;
-const int motorForwardTime = 10;
-const int motorReverseTime = 10;
-const int repsNumber = 10;
+
+// set startType 0 for hardStart and 1 for softStart of motor every turn
+const int motorStartType = 1;
+const int motorSpeed = 150;
+const int motorTime = 5000;
 const int currentGain = 20;
+const unsigned int repsNumber = 10;
+const unsigned int buttonDelay = 500;
 
 const int buttonPin = 12;
 const int driverPwmPin = 3;
@@ -22,24 +24,37 @@ const int driverFaultPin = 2;
 // x = 1 - X
 
 int buttonState = 0;
-int motorDirection;
+int motorDirection = 0;
 int currentPWM = 0;
+int running = 0;
 unsigned int currentRep = 0;
 
 unsigned long currentTime = 0;
-unsigned long previousButtonTime = 0;
+unsigned long endTime = 0;
+unsigned long previousButtonStateChange = 0;
 unsigned long runningMotorTime = 0;
 unsigned int currentOffset = 0;
 
 void softStart(int speed)
 {
   currentPWM = 0;
-  while (currentPWM < speed)
+  while (currentPWM <= speed)
   {
     currentPWM += 10;
     analogWrite(driverPwmPin, currentPWM);
-    delay(5);
+    digitalWrite(13, HIGH);
+
+    delay(2);
   }
+  running = 1;
+  analogWrite(driverPwmPin, speed);
+}
+
+void hardStart(int speed)
+{
+  analogWrite(driverPwmPin, speed);
+  digitalWrite(13, HIGH);
+  running = 1;
 }
 
 void enableDriver()
@@ -70,25 +85,20 @@ void checkFault()
   if (!digitalRead(driverFaultPin))
   {
     digitalWrite(driverSleepPin, LOW);
-    Serial.println("Driver is sending a fault!!!");
+    Serial.println(digitalRead(driverFaultPin));
   };
 }
 
-void readButton() {
-
-      // this only reads the button state after the button interval has elapsed
-      //  this avoids multiple flashes if the button bounces
-      // every time the button is pressed it changes buttonLed_State causing the Led to go on or off
-      // Notice that there is no need to synchronize this use of millis() with the flashing Leds
-  
-  if (millis() - previousButtonTime >= 2000) {
-
-    if (digitalRead(buttonPin) == LOW) {
-      buttonState = ! buttonState; 
-      previousButtonTime += 2000;
+void readButton()
+{
+  if (digitalRead(buttonPin) == LOW)
+  {
+    if (millis() - previousButtonStateChange >= buttonDelay)
+    {
+      buttonState = !buttonState;
+      previousButtonStateChange = millis();
     }
   }
-
 }
 
 void setup()
@@ -104,6 +114,7 @@ void setup()
 
   calibrateOffset();
   delay(100);
+  
 
   Serial.println("Setup completed!");
   Serial.print("Current offset calibrated as: ");
@@ -112,16 +123,43 @@ void setup()
 
 void loop()
 {
-readButton();
-Serial.print(buttonState);
+  readButton();
+  if (buttonState == 1 && currentRep < repsNumber)
+  {
+    currentTime = millis();
+    if (currentTime - runningMotorTime >= motorTime)
+    {
+      runningMotorTime = currentTime;
+      motorDirection = !motorDirection;
+      running = 0;
+      Serial.println("I am here");
+    }
+    else
+    {
+      // digitalWrite(driverSleepPin, HIGH);
+      digitalWrite(driverDirPin, motorDirection);
+      if (running == 0)
+      {
+        enableDriver();
+        softStart(motorSpeed);
+      }
+    }
+  }
+  else
+  {
+    analogWrite(driverPwmPin, LOW);
+    Serial.println("I am here NOW");
+
+    // digitalWrite(driverSleepPin, LOW);
+    running = 0;
+  }
+
+  // Serial.print(buttonState);
 
   // if(currentRep <= repsNumber)
   // {
 
-
-
   // }
-
 
   // checkFault();
   // digitalWrite(driverSleepPin, HIGH);
