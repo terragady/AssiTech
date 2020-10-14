@@ -13,13 +13,13 @@ const int motorStartType = 1;
 // set motor speed from 0 to 255
 const int motorSpeed = 255;
 // set motor time it will be running forward in ms
-const unsigned int motorForwardTime = 1000;
+const unsigned int motorForwardTime = 500;
 // set motor time it will be running reverse in ms
-const unsigned int motorReverseTime = 1000;
+const unsigned int motorReverseTime = 500;
 // set number of cycles (back and forth)
 const unsigned int repsNumber = 5;
 // set 1 if you want the cycles to be reseted after button press during working phase
-const int repReset = 1;
+const int repReset = 0;
 // set 0 if first movement should be forward or 1 for reverse
 int motorDirection = 0;
 
@@ -42,7 +42,7 @@ const int driverFaultPin = 2;
 int buttonState = 0;
 int currentPWM = 0;
 int running = 0;
-unsigned int currentRep = 0;
+unsigned int currentRep = 1;
 
 unsigned long currentTime = 0;
 unsigned long endTime = 0;
@@ -59,7 +59,7 @@ void softStart(int speed)
   currentPWM = 0;
   while (currentPWM <= speed)
   {
-    currentPWM += 10;
+    currentPWM += 20;
     analogWrite(driverPwmPin, currentPWM);
     delay(2);
   }
@@ -118,6 +118,7 @@ void readButton()
     }
   }
 }
+
 // CUSTOM CHARS
 
 byte FW[] = {
@@ -158,6 +159,7 @@ byte cycles[] = {
     0x1F,
     0x0E,
     0x04};
+
 // SETUP
 
 void setup()
@@ -220,27 +222,35 @@ void loop()
 
     // Serial.println(getCurrentReading());
   }
-  if (buttonState == 1 && currentRep/2 < repsNumber)
+  if (buttonState == 1 && currentRep / 2 <= repsNumber)
   {
+    // Serial.println(currentTime - runningMotorTime);
     if (currentTime - runningMotorTime >= (motorDirection ? motorForwardTime : motorReverseTime))
     {
       runningMotorTime = currentTime;
       motorDirection = !motorDirection;
       running = 0;
+      currentRep += 1;
     }
     else
     {
       digitalWrite(driverDirPin, motorDirection);
       if (running == 0)
       {
-        lcd.clear();
-        enableDriver();
-        currentRep += 1;
-        lcd.home();
-        lcd.print("Current cycle:");
-        lcd.print(currentRep/2);
+
         motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
         motorStartType ? softStart(motorSpeed) : hardStart(motorSpeed);
+        runningMotorTime = currentTime;
+
+        Serial.println("PLUS REP");
+        lcd.clear();
+        enableDriver();
+        lcd.setCursor(0, 0);
+        lcd.print("Current cycle:");
+        lcd.print(currentRep / 2);
+        lcd.setCursor(0, 1);
+        lcd.print("Approx. time left:");
+        lcd.print((motorForwardTime + motorReverseTime) / 1000 * currentRep / 2 / 60 + 1);
       }
     }
   }
