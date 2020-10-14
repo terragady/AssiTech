@@ -1,15 +1,31 @@
+
 // LIBs
 
 #include <Arduino.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 // Constants
 
+/////////////////////////// USER CONFIG ///////////////////////////
 // set startType 0 for hardStart and 1 for softStart of motor every turn
 const int motorStartType = 1;
-const int motorSpeed = 150;
-const int motorTime = 5000;
+// set motor speed from 0 to 255
+const int motorSpeed = 255;
+// set motor time it will be running forward in ms
+const unsigned int motorForwardTime = 1000;
+// set motor time it will be running reverse in ms
+const unsigned int motorReverseTime = 1000;
+// set number of cycles (back and forth)
+const unsigned int repsNumber = 5;
+// set 1 if you want the cycles to be reseted after button press during working phase
+const int repReset = 1;
+// set 0 if first movement should be forward or 1 for reverse
+int motorDirection = 0;
+
+/////////////////////////////// END ///////////////////////////////
+
 const int currentGain = 20;
-const unsigned int repsNumber = 10;
 const unsigned int buttonDelay = 500;
 
 const int buttonPin = 12;
@@ -24,7 +40,6 @@ const int driverFaultPin = 2;
 // x = 1 - X
 
 int buttonState = 0;
-int motorDirection = 0;
 int currentPWM = 0;
 int running = 0;
 unsigned int currentRep = 0;
@@ -32,8 +47,12 @@ unsigned int currentRep = 0;
 unsigned long currentTime = 0;
 unsigned long endTime = 0;
 unsigned long previousButtonStateChange = 0;
-unsigned long runningMotorTime = 0;
+unsigned long runningMotorTime = 8.64e+7;
+unsigned long previousCurrentReadingTime = 0;
 unsigned int currentOffset = 0;
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+
+// functions
 
 void softStart(int speed)
 {
@@ -42,19 +61,18 @@ void softStart(int speed)
   {
     currentPWM += 10;
     analogWrite(driverPwmPin, currentPWM);
-    digitalWrite(13, HIGH);
-
     delay(2);
   }
   running = 1;
+  Serial.println("SOFT");
   analogWrite(driverPwmPin, speed);
 }
 
 void hardStart(int speed)
 {
   analogWrite(driverPwmPin, speed);
-  digitalWrite(13, HIGH);
   running = 1;
+  Serial.println("SOFT");
 }
 
 void enableDriver()
@@ -72,20 +90,20 @@ void calibrateOffset()
 
 unsigned int getCurrentReading()
 {
-  int reading = analogRead(driverCSPin) - currentOffset;
+  int rawReading = analogRead(driverCSPin);
+  int reading = rawReading - currentOffset;
   if (reading > 0)
   {
     return reading * 5000000 / 1024 / currentGain;
   }
-  return 1;
+  return 0;
 }
 
 void checkFault()
 {
   if (!digitalRead(driverFaultPin))
   {
-    digitalWrite(driverSleepPin, LOW);
-    Serial.println(digitalRead(driverFaultPin));
+    Serial.println("There was a fault with the driver");
   };
 }
 
@@ -100,6 +118,47 @@ void readButton()
     }
   }
 }
+// CUSTOM CHARS
+
+byte FW[] = {
+    0x04,
+    0x0E,
+    0x1F,
+    0x04,
+    0x04,
+    0x04,
+    0x1F,
+    0x1F};
+
+byte RW[] = {
+    0x04,
+    0x04,
+    0x04,
+    0x1F,
+    0x0E,
+    0x04,
+    0x1F,
+    0x1F};
+
+byte time[] = {
+    0x1F,
+    0x1F,
+    0x0E,
+    0x04,
+    0x04,
+    0x0E,
+    0x11,
+    0x1F};
+byte cycles[] = {
+    0x04,
+    0x0E,
+    0x1F,
+    0x04,
+    0x04,
+    0x1F,
+    0x0E,
+    0x04};
+// SETUP
 
 void setup()
 {
@@ -114,75 +173,81 @@ void setup()
 
   calibrateOffset();
   delay(100);
-  
 
   Serial.println("Setup completed!");
   Serial.print("Current offset calibrated as: ");
   Serial.println(currentOffset);
+
+  lcd.init(); // initialize the lcd
+  lcd.createChar(0, FW);
+  lcd.createChar(1, RW);
+  lcd.createChar(2, time);
+  lcd.createChar(3, cycles);
+
+  lcd.backlight();
+  lcd.home();
+  lcd.print("   Ready to start");
+  lcd.setCursor(0, 1);
+  lcd.write(0);
+  lcd.print(" ");
+  lcd.print(motorForwardTime);
+  lcd.print("ms ");
+  lcd.write(1);
+  lcd.print(" ");
+  lcd.print(motorReverseTime);
+  lcd.print("ms");
+  lcd.setCursor(0, 2);
+  lcd.write(3);
+  lcd.print(" ");
+  lcd.print(repsNumber);
+  lcd.print("x");
+  lcd.setCursor(0, 3);
+  lcd.write(2);
+  lcd.print(" ");
+  lcd.print((motorForwardTime + motorReverseTime) / 1000 * repsNumber / 60 + 1);
+  lcd.print("min");
 }
+
+// LOOP
 
 void loop()
 {
   readButton();
-  if (buttonState == 1 && currentRep < repsNumber)
+  currentTime = millis();
+  if (currentTime - previousCurrentReadingTime >= 1000)
   {
-    currentTime = millis();
-    if (currentTime - runningMotorTime >= motorTime)
+    previousCurrentReadingTime = currentTime;
+
+    // Serial.println(getCurrentReading());
+  }
+  if (buttonState == 1 && currentRep/2 < repsNumber)
+  {
+    if (currentTime - runningMotorTime >= (motorDirection ? motorForwardTime : motorReverseTime))
     {
       runningMotorTime = currentTime;
       motorDirection = !motorDirection;
       running = 0;
-      Serial.println("I am here");
     }
     else
     {
-      // digitalWrite(driverSleepPin, HIGH);
       digitalWrite(driverDirPin, motorDirection);
       if (running == 0)
       {
+        lcd.clear();
         enableDriver();
-        softStart(motorSpeed);
+        currentRep += 1;
+        lcd.home();
+        lcd.print("Current cycle:");
+        lcd.print(currentRep/2);
+        motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
+        motorStartType ? softStart(motorSpeed) : hardStart(motorSpeed);
       }
     }
   }
   else
   {
     analogWrite(driverPwmPin, LOW);
-    Serial.println("I am here NOW");
-
-    // digitalWrite(driverSleepPin, LOW);
     running = 0;
+    repReset ? currentRep = 0 : currentRep = currentRep;
   }
-
-  // Serial.print(buttonState);
-
-  // if(currentRep <= repsNumber)
-  // {
-
-  // }
-
-  // checkFault();
-  // digitalWrite(driverSleepPin, HIGH);
-  // delay(1);
-
-  // currentTime = millis();
-  // digitalWrite(driverDirPin, LOW);
-  // softStart(200);
-  // analogWrite(driverPwmPin, 200);
-  // digitalWrite(13, HIGH);
-  // delay(1000);
-  // Serial.println(analogRead(driverCSPin));
-  // Serial.println(digitalRead(driverFaultPin));
-  // delay(2000);
-  // analogWrite(driverPwmPin, 0);
-  // digitalWrite(driverDirPin, HIGH);
-  // softStart(200);
-
-  // analogWrite(driverPwmPin, 200);
-  // digitalWrite(13, LOW);
-  // delay(1000);
-  // Serial.println(analogRead(driverCSPin));
-  // delay(2000);
-  // analogWrite(driverPwmPin, 0);
-  // digitalWrite(driverSleepPin, LOW);
 }
