@@ -11,11 +11,11 @@ const int motorStartType = 1; //
 // set motor speed from 0 to 255                                                         //
 const int motorSpeed = 255; //
 // set motor time it will be running forward in ms                                       //
-const unsigned int motorForwardTime = 5000; //
+const unsigned int motorForwardTime = 2500; //
 // set motor time it will be running reverse in ms                                       //
-const unsigned int motorReverseTime = 5000; //
+const unsigned int motorReverseTime = 2500; //
 // set number of cycles (back and forth)                                                 //
-const unsigned int repsNumber = 1; //
+const unsigned int repsNumber = 16; //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
 const int repReset = 0; //
 // set 0 if first movement should be forward or 1 for reverse                            //
