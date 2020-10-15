@@ -24,9 +24,9 @@ unsigned int currentRefreshTime = 250;                                          
 // Delay for steps in motor soft start, higher the value, lower the current draw         //
 // on every start but higher the start time (for speed 255 and delay 10 it is 250ms)     //
 unsigned int softStartDelayCoef = 5;                                                     //
-// Uncomment if needed                                                                   //
- #define CHECKFAULT                                                                    //
- #define STOPATFAULT                                                                   //
+//                                                                                       //
+#define CHECKFAULT                                                                       //
+#define STOPATFAULT                                                                      //
 /////////////////////////////////////////// END ///////////////////////////////////////////
 
 
