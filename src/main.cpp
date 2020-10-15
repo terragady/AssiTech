@@ -14,7 +14,7 @@ const unsigned int motorForwardTime = 2500;                                     
 // set motor time it will be running reverse in ms                                       //
 const unsigned int motorReverseTime = 2500;                                              //
 // set number of cycles (back and forth)                                                 //
-const unsigned int repsNumber = 3;                                                      //
+const unsigned int repsNumber = 3;                                                       //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
 const int repReset = 0;                                                                  //
 // set 0 if first movement should be forward or 1 for reverse                            //
@@ -24,7 +24,13 @@ unsigned int currentRefreshTime = 250;                                          
 // Delay for steps in motor soft start, higher the value, lower the current draw         //
 // on every start but higher the start time (for speed 255 and delay 10 it is 250ms)     //
 unsigned int softStartDelayCoef = 5;                                                     //
+// Uncomment if needed                                                                   //
+ #define CHECKFAULT                                                                    //
+ #define STOPATFAULT                                                                   //
 /////////////////////////////////////////// END ///////////////////////////////////////////
+
+
+// #define CHECKFAULT
 
 // LIBs
 
@@ -107,6 +113,20 @@ void checkFault()
 {
   if (!digitalRead(driverFaultPin))
   {
+    #if defined STOPATFAULT
+    digitalWrite(driverSleepPin, LOW);
+    while(1)
+    {
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print(" FAULT FROM DRIVER  ");
+      lcd.setCursor(0,1);
+      lcd.print("   PLEASE RESTART   ");
+      lcd.setCursor(0,2);
+      lcd.print(" SYSTEM TO CONTINUE ");
+      delay(10000);
+    }
+    #endif
     Serial.println("There was a fault with the driver");
   };
 }
@@ -219,6 +239,11 @@ void setup()
 
 void loop()
 {
+
+  #if defined (CHECKFAULT)
+    checkFault();
+  #endif
+
   readButton();
   currentTime = millis();
   if (currentTime - previousCurrentReadingTime >= currentRefreshTime)
