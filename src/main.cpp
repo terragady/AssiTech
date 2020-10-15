@@ -1,4 +1,3 @@
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 //                        _   ___ ___ ___ _____ ___ ___ _  _                             //
 //                       /_\ / __/ __|_ _|_   _| __/ __| || |                            //
@@ -7,19 +6,24 @@
 //                                                                                       //
 /////////////////////////////////////// USER CONFIG ///////////////////////////////////////
 // set startType 0 for hardStart and 1 for softStart of motor every turn                 //
-const int motorStartType = 1; //
+const int motorStartType = 1;                                                            //
 // set motor speed from 0 to 255                                                         //
-const int motorSpeed = 255; //
+const int motorSpeed = 255;                                                              //
 // set motor time it will be running forward in ms                                       //
-const unsigned int motorForwardTime = 2500; //
+const unsigned int motorForwardTime = 2500;                                              //
 // set motor time it will be running reverse in ms                                       //
-const unsigned int motorReverseTime = 2500; //
+const unsigned int motorReverseTime = 2500;                                              //
 // set number of cycles (back and forth)                                                 //
-const unsigned int repsNumber = 16; //
+const unsigned int repsNumber = 3;                                                      //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
-const int repReset = 0; //
+const int repReset = 0;                                                                  //
 // set 0 if first movement should be forward or 1 for reverse                            //
-int motorDirection = 1; //
+int motorDirection = 1;                                                                  //
+// refresh time for current measurements during move in ms                               //
+unsigned int currentRefreshTime = 250;                                                   //
+// Delay for steps in motor soft start, higher the value, lower the current draw         //
+// on every start but higher the start time (for speed 255 and delay 10 it is 250ms)     //
+unsigned int softStartDelayCoef = 5;                                                     //
 /////////////////////////////////////////// END ///////////////////////////////////////////
 
 // LIBs
@@ -28,11 +32,10 @@ int motorDirection = 1; //
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-// Constants
+// CONSTANTS
 
 const int currentGain = 40;
 const unsigned int buttonDelay = 500;
-
 const int buttonPin = 12;
 const int driverPwmPin = 3;
 const int driverDirPin = 4;
@@ -40,9 +43,7 @@ const int driverSleepPin = 7;
 const int driverCSPin = A0;
 const int driverFaultPin = 2;
 
-// Vars
-
-// x = 1 - X
+// VARS
 
 int buttonState = 0;
 int currentPWM = 0;
@@ -55,18 +56,19 @@ unsigned long previousButtonStateChange = 0;
 unsigned long runningMotorTime = 8.64e+7;
 unsigned long previousCurrentReadingTime = 0;
 unsigned int currentOffset = 0;
-LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-// functions
+// FUNCS
+
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 void softStart(int speed)
 {
   currentPWM = 0;
-  while (currentPWM <= speed)
+  while (currentPWM + 10 <= speed)
   {
-    currentPWM += 20;
+    currentPWM += 10;
     analogWrite(driverPwmPin, currentPWM);
-    delay(2);
+    delay(softStartDelayCoef);
   }
   running = 1;
   analogWrite(driverPwmPin, speed);
@@ -152,6 +154,7 @@ byte time[] = {
     0x0E,
     0x11,
     0x1F};
+
 byte cycles[] = {
     0x04,
     0x0E,
@@ -218,7 +221,7 @@ void loop()
 {
   readButton();
   currentTime = millis();
-  if (currentTime - previousCurrentReadingTime >= 500)
+  if (currentTime - previousCurrentReadingTime >= currentRefreshTime)
   {
     previousCurrentReadingTime = currentTime;
     if (running == 1)
@@ -251,8 +254,10 @@ void loop()
         runningMotorTime = currentTime;
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print("Current cycle: ");
+        lcd.print("Curr. cycle: ");
         lcd.print(currentRep / 2);
+        lcd.setCursor(19, 0);
+        lcd.write(motorDirection ? 0 : 1);
         lcd.setCursor(0, 1);
         lcd.print("Time left: ");
         lcd.print((motorForwardTime + motorReverseTime) / 1000 * (repsNumber - currentRep / 2) / 60 + 1);
@@ -281,3 +286,30 @@ void loop()
     }
   }
 }
+
+//********************************************************************************************//
+//                                                                                            //
+//   Code prepared with happiness by:                                                         //
+//                                                                                            //
+//    &@@@@@@@@@@@@/         ,(%%%%%%%%%%%%%%%#.                                              //
+//    .#@@@@@@@@@@@@#,          /#%%%%%%%%%%#*                                                //
+//      *@@@@@@@@@@@@&/          .(%%%%%%%%/.                                                 // 
+//       .%@@@@@@@@@@@@#.          *#%%%%(.                                                   //
+//         *@@@@@@@@@@@@&*          *#%#*          ___ ___                                    //
+//          .%@@@@@@@@@@@@#          **.           `MM `MM                                    //
+//            /&@@@@@@@@@@@&,                       MM  MM                                    //
+//             ,%@@@@@@@@@@@@(              ___     MM  MM   _____  ____    _    ___          //
+//               (&@@@@@@@@@@@&.          6MMMMb    MM  MM  6MMMMMb `MM(   ,M.   )M'          // 
+//                *%@@@@@@@@@@@@/.       8M'  `Mb   MM  MM 6M'   `Mb `Mb   dMb   d'           // 
+//                 .(@@@@@@@@@@&,            ,oMM   MM  MM MM     MM  YM. ,PYM. ,P            //
+//                   *%@@@@@@@/          ,6MM9'MM   MM  MM MM     MM  `Mb d'`Mb d'            //
+//                    .(@@@@%.           MM'   MM   MM  MM MM     MM   YM,P  YM,P             //
+//                      *%&*             MM.  ,MM   MM  MM YM.   ,M9   `MM'  `MM'             //
+//     .*&@@@&(.                         `YMMM9'Yb._MM__MM_ YMMMMM9     YP    YP              //
+//    *@@@@@@@@@(.                                                                            //
+//    #@@@@@@@@@@&#,.                                                                         //
+//    ,@@@@@@@@@@@@&/.          ___________________________________________________           //
+//      ,#@@@@@&(,             | www.yallow.no | +47 41 35 06 08 | hello@yallow.no |          //
+//                              ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯           // 
+//                                                                                            //
+//********************************************************************************************//
