@@ -113,7 +113,7 @@ void checkFault()
 {
   if (!digitalRead(driverFaultPin))
   {
-    #if defined STOPATFAULT
+    #ifdef STOPATFAULT
     digitalWrite(driverSleepPin, LOW);
     while(1)
     {
@@ -260,7 +260,6 @@ void loop()
 
   if (buttonState == 1 && currentRep / 2 <= repsNumber)
   {
-    // Serial.println(currentTime - runningMotorTime);
     if (currentTime - runningMotorTime >= (motorDirection ? motorForwardTime : motorReverseTime))
     {
       analogWrite(driverPwmPin, 0);
