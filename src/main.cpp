@@ -29,6 +29,7 @@ unsigned int softStartDelayCoef = 5;                                            
 #define STOPATFAULT                                                                      //
 /////////////////////////////////////////// END ///////////////////////////////////////////
 
+
 // #define CHECKFAULT
 
 // LIBs
