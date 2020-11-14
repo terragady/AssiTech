@@ -24,9 +24,6 @@ unsigned int currentRefreshTime = 250;                                          
 // Delay for steps in motor soft start, higher the value, lower the current draw         //
 // on every start but higher the start time (for speed 255 and delay 10 it is 250ms)     //
 unsigned int softStartDelayCoef = 5;                                                     //
-//                                                                                       //
-#define CHECKFAULT                                                                       //
-#define STOPATFAULT                                                                      //
 /////////////////////////////////////////// END ///////////////////////////////////////////
 
 
@@ -84,16 +81,9 @@ void hardStart(int speed)
   running = 1;
 }
 
-void enableDriver()
-{
-  digitalWrite(driverSleepPin, HIGH);
-  delay(1);
-}
-
 void calibrateOffset()
 {
   analogWrite(driverPwmPin, 0);
-  enableDriver();
   currentOffset = analogRead(driverCSPin);
 }
 
@@ -105,28 +95,6 @@ unsigned int getCurrentReading()
     return reading * 5000000 / 1024 / currentGain;
   }
   return 0;
-}
-
-void checkFault()
-{
-  if (!digitalRead(driverFaultPin))
-  {
-    #ifdef STOPATFAULT
-    digitalWrite(driverSleepPin, LOW);
-    while(1)
-    {
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print(" FAULT FROM DRIVER  ");
-      lcd.setCursor(0,1);
-      lcd.print("   PLEASE RESTART   ");
-      lcd.setCursor(0,2);
-      lcd.print(" SYSTEM TO CONTINUE ");
-      delay(10000);
-    }
-    #endif
-    Serial.println("There was a fault with the driver");
-  };
 }
 
 void readButton()
@@ -237,11 +205,6 @@ void setup()
 
 void loop()
 {
-
-  #if defined (CHECKFAULT)
-    checkFault();
-  #endif
-
   readButton();
   currentTime = millis();
   if (currentTime - previousCurrentReadingTime >= currentRefreshTime)
