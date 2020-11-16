@@ -5,14 +5,12 @@
 //                     /_/ \_\___/___/___| |_| |___\___|_||_|                            //
 //                                                                                       //
 /////////////////////////////////////// USER CONFIG ///////////////////////////////////////
-// set startType 0 for hardStart and 1 for softStart of motor every turn                 //
-const int motorStartType = 1;                                                            //
 // set motor speed from 0 to 255                                                         //
-const int motorSpeed = 255;                                                              //
+const int motorSpeed = 100;                                                              //
 // set motor time it will be running forward in ms                                       //
-const unsigned int motorForwardTime = 2500;                                              //
+const unsigned int motorForwardTime = 5000;                                              //
 // set motor time it will be running reverse in ms                                       //
-const unsigned int motorReverseTime = 2500;                                              //
+const unsigned int motorReverseTime = 5000;                                              //
 // set number of cycles (back and forth)                                                 //
 const unsigned int repsNumber = 3;                                                       //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
@@ -35,11 +33,12 @@ unsigned int softStartDelayCoef = 5;                                            
 
 // CONSTANTS
 
-const int currentGain = 40;
+const int currentGain = 140;
 const unsigned int buttonDelay = 500;
 const int buttonPin = 12;
 const int driverPwmPin = 3;
-const int driverDirPin = 4;
+const int driverINA = 4;
+const int driverINB = 5;
 const int driverSleepPin = 7;
 const int driverCSPin = A0;
 const int driverFaultPin = 2;
@@ -73,12 +72,6 @@ void softStart(int speed)
   }
   running = 1;
   analogWrite(driverPwmPin, speed);
-}
-
-void hardStart(int speed)
-{
-  analogWrite(driverPwmPin, speed);
-  running = 1;
 }
 
 void calibrateOffset()
@@ -159,10 +152,13 @@ void setup()
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(driverFaultPin, INPUT_PULLUP);
   pinMode(driverPwmPin, OUTPUT);
-  pinMode(driverDirPin, OUTPUT);
+  pinMode(driverINA, OUTPUT);
+  pinMode(driverINB, OUTPUT);
   pinMode(driverSleepPin, OUTPUT);
   pinMode(13, OUTPUT);
   pinMode(driverCSPin, INPUT);
+  digitalWrite(driverINA, LOW);
+  digitalWrite(driverINB, LOW);
 
   calibrateOffset();
   delay(100);
@@ -233,9 +229,11 @@ void loop()
     {
       if (running == 0)
       {
-        digitalWrite(driverDirPin, motorDirection);
+        digitalWrite(driverINA, motorDirection);
+        digitalWrite(driverINB, !motorDirection);
+
         motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
-        motorStartType ? softStart(motorSpeed) : hardStart(motorSpeed);
+        softStart(motorSpeed);
         runningMotorTime = currentTime;
         lcd.clear();
         lcd.setCursor(0, 0);
