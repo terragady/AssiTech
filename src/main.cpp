@@ -6,13 +6,13 @@
 //                                                                                       //
 /////////////////////////////////////// USER CONFIG ///////////////////////////////////////
 // set motor speed from 0 to 255                                                         //
-const int motorSpeed = 100;                                                              //
+const int motorSpeed = 80;                                                              //
 // set motor time it will be running forward in ms                                       //
 const unsigned int motorForwardTime = 5000;                                              //
 // set motor time it will be running reverse in ms                                       //
 const unsigned int motorReverseTime = 5000;                                              //
 // set number of cycles (back and forth)                                                 //
-const unsigned int repsNumber = 3;                                                       //
+const unsigned int repsNumber = 2;                                                       //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
 const int repReset = 0;                                                                  //
 // set 0 if first movement should be forward or 1 for reverse                            //
@@ -21,7 +21,7 @@ int motorDirection = 1;                                                         
 unsigned int currentRefreshTime = 250;                                                   //
 // Delay for steps in motor soft start, higher the value, lower the current draw         //
 // on every start but higher the start time (for speed 255 and delay 10 it is 250ms)     //
-unsigned int softStartDelayCoef = 5;                                                     //
+unsigned int softStartDelayCoef = 25;                                                     //
 /////////////////////////////////////////// END ///////////////////////////////////////////
 
 
@@ -36,7 +36,7 @@ unsigned int softStartDelayCoef = 5;                                            
 const int currentGain = 140;
 const unsigned int buttonDelay = 500;
 const int buttonPin = 12;
-const int driverPwmPin = 3;
+const int driverPwmPin = 10;
 const int driverINA = 4;
 const int driverINB = 5;
 const int driverSleepPin = 7;
@@ -159,6 +159,9 @@ void setup()
   pinMode(driverCSPin, INPUT);
   digitalWrite(driverINA, LOW);
   digitalWrite(driverINB, LOW);
+
+  // Switching for different PWM Frequencies 1 is highest
+  //TCCR1B = TCCR1B & B11111000 | B00000001;
 
   calibrateOffset();
   delay(100);
