@@ -8,13 +8,13 @@
 // set motor speed from 0 to 255                                                         //
 const int motorSpeed = 254;                                                              //
 // set total motor time it will be running clockwise in ms                               //
-const unsigned int motorForwardTime = 2000;                                              //
+const unsigned int motorForwardTime = 123456;                                              //
 // set total motor time it will be running counterclockwise in ms                        //
-const unsigned int motorReverseTime = 2000;                                              //
+const unsigned int motorReverseTime = 123456;                                              //
 // delay applied bewteen each turn                                                       //
-const unsigned int delayBetweenTurn = 500;                                               //
+const unsigned int delayBetweenTurn = 200;                                               //
 // set number of cycles (back and forth)                                                 //
-const unsigned int repsNumber = 2;                                                       //
+const unsigned int repsNumber = 5;                                                       //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
 const int repReset = 0;                                                                  //
 // set 0 if first movement should be CW or 1 for CCW                                     //
@@ -236,28 +236,26 @@ void loop()
       motorDirection = !motorDirection;
       running = 0;
       currentRep += 1;
-    }
-    else {
-    if (running == 0)
-      {
-        delay(delayBetweenTurn);
-        digitalWrite(driverINA, motorDirection);
-        digitalWrite(driverINB, !motorDirection);
-        motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
-        softStart(motorSpeed);
-
-        runningMotorTime = currentTime;
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("Curr. cycle: ");
-        lcd.print(currentRep / 2);
-        lcd.setCursor(19, 0);
-        lcd.write(motorDirection ? 0 : 1);
-        lcd.setCursor(0, 1);
-        lcd.print("Time left: ");
-        lcd.print((motorForwardTime + motorReverseTime) / 1000 * (repsNumber - currentRep / 2) / 60 + 1);
-        lcd.print("min");
-      }
+    } else {
+      if (running == 0)
+        {
+          delay(delayBetweenTurn);
+          digitalWrite(driverINA, motorDirection);
+          digitalWrite(driverINB, !motorDirection);
+          motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
+          softStart(motorSpeed);
+          runningMotorTime = millis();
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Curr. cycle: ");
+          lcd.print(currentRep / 2);
+          lcd.setCursor(19, 0);
+          lcd.write(motorDirection ? 0 : 1);
+          lcd.setCursor(0, 1);
+          lcd.print("Time left: ");
+          lcd.print((motorForwardTime + motorReverseTime) / 1000 * (repsNumber - currentRep / 2) / 60 + 1);
+          lcd.print("min");
+        }
     }
   } else {
     digitalWrite(driverPwmPin, LOW);
@@ -276,6 +274,7 @@ void loop()
       currentRep = 1;
       runningMotorTime = 8.64e+7;
       motorDirection = !motorDirection;
+      while(digitalRead(buttonPin) == HIGH);
     } else {
       digitalWrite(driverINA, 1);
       digitalWrite(driverINB, 1);
