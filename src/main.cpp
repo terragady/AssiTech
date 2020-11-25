@@ -8,13 +8,13 @@
 // set motor speed from 0 to 255                                                         //
 const int motorSpeed = 255;                                                              //
 // set total motor time it will be running clockwise in ms                               //
-const unsigned int motorForwardTime = 5000;                                              //
+const unsigned long motorForwardTime = 5000;                                             //
 // set total motor time it will be running counterclockwise in ms                        //
-const unsigned int motorReverseTime = 5000;                                              //
+const unsigned long motorReverseTime = 5000;                                             //
 // delay applied bewteen each turn                                                       //
-const unsigned int delayBetweenTurn = 4000;                                               //
+const unsigned int delayBetweenTurns = 300;                                              //
 // set number of cycles (back and forth)                                                 //
-const unsigned int repsNumber = 5;                                                       //
+const unsigned int repsNumber = 250;                                                     //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
 const int repReset = 0;                                                                  //
 // set 0 if first movement should be CW or 1 for CCW                                     //
@@ -51,7 +51,7 @@ const int driverFaultPin = 2;
 int buttonState = 0;
 int currentPWM = 0;
 int running = 0;
-int softStartTime = 0;
+unsigned long additionalTime = 0;
 unsigned int currentRep = 1;
 
 unsigned long currentTime = 0;
@@ -172,7 +172,7 @@ void setup()
 
   calibrateOffset();
   delay(100);
-  softStartTime = softStartDelayCoef * (motorSpeed/10) / 1000 / 60;
+  additionalTime = softStartDelayCoef * (motorSpeed/10) + delayBetweenTurns;
 
   Serial.println("Setup completed!");
   Serial.print("Current offset calibrated as: ");
@@ -204,7 +204,7 @@ void setup()
   lcd.setCursor(0, 3);
   lcd.write(2);
   lcd.print(" ");
-  lcd.print((motorForwardTime + motorReverseTime) / 1000 * repsNumber / 60 + 1);
+  lcd.print((motorForwardTime + motorReverseTime + additionalTime*2) * repsNumber / 1000 / 60 + 1);
   lcd.print("min");
 }
 
@@ -240,7 +240,7 @@ void loop()
         {
 
           Serial.println(currentRep);
-          if(currentRep != 2){delay(delayBetweenTurn);}
+          if(currentRep != 2){delay(delayBetweenTurns);}
           digitalWrite(driverINA, motorDirection);
           digitalWrite(driverINB, !motorDirection);
           motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
@@ -254,7 +254,7 @@ void loop()
           lcd.write(motorDirection ? 0 : 1);
           lcd.setCursor(0, 1);
           lcd.print("Time left: ");
-          lcd.print((motorForwardTime + motorReverseTime) / 1000 * (repsNumber - currentRep / 2) / 60 + 1);
+          lcd.print((motorForwardTime + motorReverseTime + additionalTime*2) * (repsNumber - currentRep / 2) / 1000 / 60 + 1);
           lcd.print("min");
         }
     }
