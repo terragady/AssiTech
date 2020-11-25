@@ -6,13 +6,13 @@
 //                                                                                       //
 /////////////////////////////////////// USER CONFIG ///////////////////////////////////////
 // set motor speed from 0 to 255                                                         //
-const int motorSpeed = 254;                                                              //
+const int motorSpeed = 255;                                                              //
 // set total motor time it will be running clockwise in ms                               //
-const unsigned int motorForwardTime = 123456;                                              //
+const unsigned int motorForwardTime = 5000;                                              //
 // set total motor time it will be running counterclockwise in ms                        //
-const unsigned int motorReverseTime = 123456;                                              //
+const unsigned int motorReverseTime = 5000;                                              //
 // delay applied bewteen each turn                                                       //
-const unsigned int delayBetweenTurn = 200;                                               //
+const unsigned int delayBetweenTurn = 4000;                                               //
 // set number of cycles (back and forth)                                                 //
 const unsigned int repsNumber = 5;                                                       //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
@@ -26,7 +26,7 @@ unsigned int currentRefreshTime = 250;                                          
 unsigned int softStartDelayCoef = 2;                                                     //
 // uncommenting will use high freqiency PWM signal (good for motor and controller        //
 // but bad if used with speeds lower than 255                                            //
-//  #define HighFreq;                                                                     //
+//  #define HighFreq;                                                                    //
 /////////////////////////////////////////// END ///////////////////////////////////////////
 
 // LIBs
@@ -75,8 +75,7 @@ void softStart(int speed)
     delay(softStartDelayCoef);
   }
   running = 1;
-  digitalWrite(driverPwmPin, HIGH);
-  //analogWrite(driverPwmPin, speed == 255 ? HIGH : speed);
+  analogWrite(driverPwmPin, speed);
 }
 
 void calibrateOffset()
@@ -239,7 +238,9 @@ void loop()
     } else {
       if (running == 0)
         {
-          delay(delayBetweenTurn);
+
+          Serial.println(currentRep);
+          if(currentRep != 2){delay(delayBetweenTurn);}
           digitalWrite(driverINA, motorDirection);
           digitalWrite(driverINB, !motorDirection);
           motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
