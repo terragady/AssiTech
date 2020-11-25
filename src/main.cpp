@@ -6,24 +6,28 @@
 //                                                                                       //
 /////////////////////////////////////// USER CONFIG ///////////////////////////////////////
 // set motor speed from 0 to 255                                                         //
-const int motorSpeed = 255;                                                              //
-// set motor time it will be running forward in ms                                       //
-const unsigned int motorForwardTime = 5000;                                              //
-// set motor time it will be running reverse in ms                                       //
-const unsigned int motorReverseTime = 5000;                                              //
+const int motorSpeed = 254;                                                              //
+// set total motor time it will be running clockwise in ms                               //
+const unsigned int motorForwardTime = 2000;                                              //
+// set total motor time it will be running counterclockwise in ms                        //
+const unsigned int motorReverseTime = 2000;                                              //
+// delay applied bewteen each turn                                                       //
+const unsigned int delayBetweenTurn = 500;                                               //
 // set number of cycles (back and forth)                                                 //
 const unsigned int repsNumber = 2;                                                       //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
 const int repReset = 0;                                                                  //
-// set 0 if first movement should be forward or 1 for reverse                            //
-int motorDirection = 1;                                                                  //
+// set 0 if first movement should be CW or 1 for CCW                                     //
+int motorDirection = 0;                                                                  //
 // refresh time for current measurements during move in ms                               //
 unsigned int currentRefreshTime = 250;                                                   //
 // Delay for steps in motor soft start, higher the value, lower the current draw         //
 // on every start but higher the start time (for speed 255 and delay 10 it is 250ms)     //
-unsigned int softStartDelayCoef = 25;                                                     //
+unsigned int softStartDelayCoef = 2;                                                     //
+// uncommenting will use high freqiency PWM signal (good for motor and controller        //
+// but bad if used with speeds lower than 255                                            //
+//  #define HighFreq;                                                                     //
 /////////////////////////////////////////// END ///////////////////////////////////////////
-
 
 // LIBs
 
@@ -39,7 +43,6 @@ const int buttonPin = 12;
 const int driverPwmPin = 10;
 const int driverINA = 4;
 const int driverINB = 5;
-const int driverSleepPin = 7;
 const int driverCSPin = A0;
 const int driverFaultPin = 2;
 
@@ -48,6 +51,7 @@ const int driverFaultPin = 2;
 int buttonState = 0;
 int currentPWM = 0;
 int running = 0;
+int softStartTime = 0;
 unsigned int currentRep = 1;
 
 unsigned long currentTime = 0;
@@ -64,7 +68,6 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);
 void softStart(int speed)
 {
   currentPWM = 0;
-  delay(4000);
   while (currentPWM + 10 <= speed)
   {
     currentPWM += 10;
@@ -72,7 +75,8 @@ void softStart(int speed)
     delay(softStartDelayCoef);
   }
   running = 1;
-  analogWrite(driverPwmPin, speed);
+  digitalWrite(driverPwmPin, HIGH);
+  //analogWrite(driverPwmPin, speed == 255 ? HIGH : speed);
 }
 
 void calibrateOffset()
@@ -128,14 +132,14 @@ byte RW[] = {
     };
 
 byte time[] = {
-    0x1F,
-    0x1F,
-    0x0E,
-    0x04,
-    0x04,
-    0x0E,
-    0x11,
-    0x1F};
+  0x1F,
+  0x1F,
+  0x0E,
+  0x04,
+  0x04,
+  0x0E,
+  0x11,
+  0x1F};
 
 byte cycles[] = {
   0x11,
@@ -157,17 +161,19 @@ void setup()
   pinMode(driverPwmPin, OUTPUT);
   pinMode(driverINA, OUTPUT);
   pinMode(driverINB, OUTPUT);
-  pinMode(driverSleepPin, OUTPUT);
   pinMode(13, OUTPUT);
   pinMode(driverCSPin, INPUT);
   digitalWrite(driverINA, LOW);
   digitalWrite(driverINB, LOW);
 
   // Switching for different PWM Frequencies 1 is highest
-  //TCCR1B = TCCR1B & B11111000 | B00000001;
+  #if defined (HighFreq)
+    TCCR1B = TCCR1B & B11111000 | B00000001;
+  #endif
 
   calibrateOffset();
   delay(100);
+  softStartTime = softStartDelayCoef * (motorSpeed/10) / 1000 / 60;
 
   Serial.println("Setup completed!");
   Serial.print("Current offset calibrated as: ");
@@ -225,21 +231,21 @@ void loop()
   {
     if (currentTime - runningMotorTime >= (motorDirection ? motorForwardTime : motorReverseTime))
     {
-      analogWrite(driverPwmPin, 0);
+      digitalWrite(driverPwmPin, LOW);
       runningMotorTime = currentTime;
       motorDirection = !motorDirection;
       running = 0;
       currentRep += 1;
     }
-    else
-    {
-      if (running == 0)
+    else {
+    if (running == 0)
       {
+        delay(delayBetweenTurn);
         digitalWrite(driverINA, motorDirection);
         digitalWrite(driverINB, !motorDirection);
-
         motorDirection ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
         softStart(motorSpeed);
+
         runningMotorTime = currentTime;
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -253,10 +259,8 @@ void loop()
         lcd.print("min");
       }
     }
-  }
-  else
-  {
-    analogWrite(driverPwmPin, LOW);
+  } else {
+    digitalWrite(driverPwmPin, LOW);
     running = 0;
     repReset ? currentRep = 0 : currentRep = currentRep;
     if (currentRep / 2 > repsNumber)
@@ -272,6 +276,9 @@ void loop()
       currentRep = 1;
       runningMotorTime = 8.64e+7;
       motorDirection = !motorDirection;
+    } else {
+      digitalWrite(driverINA, 1);
+      digitalWrite(driverINB, 1);
     }
   }
 }
