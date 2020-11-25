@@ -6,7 +6,7 @@
 //                                                                                       //
 /////////////////////////////////////// USER CONFIG ///////////////////////////////////////
 // set motor speed from 0 to 255                                                         //
-const int motorSpeed = 80;                                                              //
+const int motorSpeed = 255;                                                              //
 // set motor time it will be running forward in ms                                       //
 const unsigned int motorForwardTime = 5000;                                              //
 // set motor time it will be running reverse in ms                                       //
@@ -64,6 +64,7 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);
 void softStart(int speed)
 {
   currentPWM = 0;
+  delay(4000);
   while (currentPWM + 10 <= speed)
   {
     currentPWM += 10;
@@ -105,24 +106,26 @@ void readButton()
 // CUSTOM CHARS
 
 byte FW[] = {
-    0x04,
-    0x0E,
-    0x1F,
-    0x04,
-    0x04,
-    0x04,
-    0x1F,
-    0x1F};
+  0x04,
+  0x06,
+  0x1F,
+  0x16,
+  0x14,
+  0x11,
+  0x11,
+  0x1F
+    };
 
 byte RW[] = {
-    0x04,
-    0x04,
-    0x04,
-    0x1F,
-    0x0E,
-    0x04,
-    0x1F,
-    0x1F};
+  0x04,
+  0x0C,
+  0x1F,
+  0x0D,
+  0x05,
+  0x11,
+  0x11,
+  0x1F
+    };
 
 byte time[] = {
     0x1F,
@@ -135,14 +138,14 @@ byte time[] = {
     0x1F};
 
 byte cycles[] = {
-    0x04,
-    0x0E,
-    0x1F,
-    0x04,
-    0x04,
-    0x1F,
-    0x0E,
-    0x04};
+  0x11,
+  0x1B,
+  0x0A,
+  0x04,
+  0x04,
+  0x0A,
+  0x1B,
+  0x11};
 
 // SETUP
 
