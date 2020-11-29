@@ -16,15 +16,15 @@ const unsigned long motorReverseTime = 5000;                                    
 const unsigned int delayBetweenTurns = 300;                                              //
 // set number of cycles (1 cycle = CW + CCW move)                                        //
 const unsigned int repsNumber = 250;                                                     //
+// Delay for steps in motor soft start, higher the value, lower the current draw         //
+// on every start but higher the start time (for speed 255 and delay 10 it is 250ms)     //
+unsigned int softStartDelayCoef = 2;                                                     //
 // set 1 if you want the cycles to be reseted after button press during working phase    //
 const int repReset = 0;        // default 0                                              //
 // set 0 if first movement should be CW or 1 for CCW                                     //
 int motorDirection = 0;        // default 0                                              //
 // refresh time for current measurements during move in ms                               //
 unsigned int currentRefreshTime = 250;                                                   //
-// Delay for steps in motor soft start, higher the value, lower the current draw         //
-// on every start but higher the start time (for speed 255 and delay 10 it is 250ms)     //
-unsigned int softStartDelayCoef = 2;                                                     //
 // uncommenting this will use high freqiency PWM signal (good for motor and controller   //
 // but bad if used with speeds lower than 255                                            //
 // #define HighFreq;                                                                     //
